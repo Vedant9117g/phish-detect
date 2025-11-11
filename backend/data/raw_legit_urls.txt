@@ -1,0 +1,11 @@
+﻿https://www.google.com
+https://github.com
+https://wikipedia.org
+https://stackoverflow.com
+https://www.python.org
+https://mozilla.org
+https://reactjs.org
+https://nodejs.org
+https://developer.chrome.com
+https://microsoft.com
+

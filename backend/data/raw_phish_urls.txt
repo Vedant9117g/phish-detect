@@ -1,0 +1,11 @@
+﻿http://secure-paypal.com/update_account
+http://malicious-login.example.com/secure-login
+http://192.168.0.1/admin
+http://verify-bank-login.tk
+http://account-update-now.ru/login
+http://secure-login-paypal.example.net/signin
+http://confirm-account.example.org/verify
+http://login.bank-secure-example.com
+http://update-info.example-site.com
+http://signin.verify-your-account.today
+

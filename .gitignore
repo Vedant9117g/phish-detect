@@ -1,0 +1,89 @@
+# ===============================
+#   Global ignores
+# ===============================
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+~$*
+
+# ===============================
+#   Python (backend/ml)
+# ===============================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+build/
+dist/
+.eggs/
+.pytest_cache/
+*.ipynb_checkpoints/
+.venv/
+env/
+venv/
+.venv/
+
+# model + data outputs (optional — uncomment if you don’t want to version them)
+# backend/data/features.csv
+# backend/data/urls_with_label.csv
+# backend/models/rf_model.joblib
+# backend/models/rf_model.json
+
+# ===============================
+#   Node.js / Express (backend/api)
+# ===============================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+.env
+.env.local
+.env.*.local
+
+# ===============================
+#   React (frontend/admin)
+# ===============================
+frontend/admin/node_modules/
+frontend/admin/build/
+frontend/admin/dist/
+frontend/admin/.env.local
+frontend/admin/.env.development.local
+frontend/admin/.env.test.local
+frontend/admin/.env.production.local
+
+# ===============================
+#   Browser extension (frontend/extension)
+# ===============================
+frontend/extension/node_modules/
+frontend/extension/dist/
+frontend/extension/build/
+*.crx
+*.zip
+
+# ===============================
+#   IDE / Editor files
+# ===============================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ===============================
+#   OS generated files
+# ===============================
+ehthumbs.db
+Icon?
+desktop.ini
+
+# ===============================
+#   Jupyter / notebooks
+# ===============================
+notebooks/.ipynb_checkpoints/
+*.ipynb_checkpoints
