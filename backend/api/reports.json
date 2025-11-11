@@ -1,0 +1,20 @@
+[
+  {
+    "extra": {
+      "reason": "manual popup test"
+    },
+    "id": "1762886673020-7298",
+    "score": 0.92,
+    "ts": "2025-11-11T18:44:33.020Z",
+    "url": "https://simulated-test.local/"
+  },
+  {
+    "extra": {
+      "reason": "manual popup test"
+    },
+    "id": "1762882044857-5567",
+    "score": 0.92,
+    "ts": "2025-11-11T17:27:24.857Z",
+    "url": "https://simulated-test.local/"
+  }
+]
