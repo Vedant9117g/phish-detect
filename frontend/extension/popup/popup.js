@@ -1,15 +1,26 @@
-// popup/popup.js
+// popup/popup.js - full behavior: thresholds, last detection, saved reports, send/clear/simulate
 document.addEventListener("DOMContentLoaded", () => {
+  // Elements
   const lastEl = document.getElementById("last");
+  const blockRange = document.getElementById("blockRange");
+  const blockNum = document.getElementById("blockNum");
+  const warnRange = document.getElementById("warnRange");
+  const warnNum = document.getElementById("warnNum");
+  const saveBtn = document.getElementById("save");
+  const resetBtn = document.getElementById("reset");
   const refreshBtn = document.getElementById("refresh");
-  const clearBtn = document.getElementById("clear");
-  const reportsEl = document.getElementById("reports");
-  const sendBtn = document.getElementById("send");
   const apiInput = document.getElementById("apiUrl");
+  const sendBtn = document.getElementById("send");
+  const clearBtn = document.getElementById("clear");
   const simulateBtn = document.getElementById("simulate");
+  const reportsEl = document.getElementById("reports");
 
+  // Defaults (percent)
+  const DEFAULTS = { block: 50, warn: 35 };
+
+  // Helpers
   function escapeHtml(s) {
-    if (!s && s !== 0) return "";
+    if (s === null || s === undefined) return "";
     return String(s).replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
   }
 
@@ -19,44 +30,52 @@ document.addEventListener("DOMContentLoaded", () => {
     return "score-low";
   }
 
-  async function loadLast() {
-    try {
-      const raw = sessionStorage.getItem("phish_detect_last");
-      if (!raw) {
-        lastEl.innerHTML = `<div class="muted">No detection yet.</div>`;
-        return;
-      }
-      const obj = JSON.parse(raw);
-      const result = obj.result || {};
-      const score = (result.score || 0);
-      const pct = Math.round(score * 100);
-      const votes = result.votes || {};
-      const ts = obj.ts ? new Date(obj.ts).toLocaleString() : "";
-      // features if present
-      const features = obj.features || obj.result && obj.result.features || null;
-      // Some content scripts store features in extra/result; adapt defensively:
-      const extra = obj.result && obj.result.extra || obj.extra || null;
-
-      lastEl.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="flex:1">
-            <div><b>${escapeHtml(obj.url)}</b></div>
-            <div class="small muted">${escapeHtml(ts)}</div>
-          </div>
-          <div style="margin-left:8px">
-            <div class="score-pill ${scoreClass(score)}">${pct}%</div>
-          </div>
-        </div>
-        <div style="margin-top:8px; font-size:12px;">
-          <b>Votes:</b> ${escapeHtml(JSON.stringify(votes))}
-        </div>
-        ${features ? `<div style="margin-top:6px; font-size:12px;"><b>Features:</b><pre style="font-size:11px; margin:6px 0 0 0;">${escapeHtml(JSON.stringify(features, null, 2))}</pre></div>` : (extra ? `<div style="margin-top:6px; font-size:12px;"><b>Extra:</b><pre style="font-size:11px; margin:6px 0 0 0;">${escapeHtml(JSON.stringify(extra, null, 2))}</pre></div>` : "")}
-      `;
-    } catch (e) {
-      lastEl.textContent = "No detection yet.";
-    }
+  function setControlsFromObj(obj) {
+    const b = typeof obj.block === "number" ? obj.block : DEFAULTS.block;
+    const w = typeof obj.warn === "number" ? obj.warn : DEFAULTS.warn;
+    blockRange.value = b; blockNum.value = b;
+    warnRange.value = w; warnNum.value = w;
   }
 
+  // Sync inputs
+  blockRange.addEventListener("input", () => blockNum.value = blockRange.value);
+  blockNum.addEventListener("input", () => {
+    let v = Number(blockNum.value);
+    if (isNaN(v)) v = DEFAULTS.block;
+    v = Math.max(0, Math.min(100, v));
+    blockNum.value = v; blockRange.value = v;
+  });
+  warnRange.addEventListener("input", () => warnNum.value = warnRange.value);
+  warnNum.addEventListener("input", () => {
+    let v = Number(warnNum.value);
+    if (isNaN(v)) v = DEFAULTS.warn;
+    v = Math.max(0, Math.min(100, v));
+    warnNum.value = v; warnRange.value = v;
+  });
+
+  // Load thresholds and last detection
+  function loadSettingsAndLast() {
+    chrome.storage.local.get(["phish_thresholds", "phish_last"], (res) => {
+      const thr = res.phish_thresholds || null;
+      setControlsFromObj(thr || {});
+      // Attempt to load last detection from storage (fallback to sessionStorage)
+      const last = res.phish_last || sessionStorage.getItem("phish_detect_last");
+      if (last) {
+        try {
+          const obj = typeof last === "string" ? JSON.parse(last) : last;
+          const score = obj.result && obj.result.score != null ? Math.round((1 - obj.result.score) * 100) : null;
+          const pctText = score != null ? `${score}% safe` : "N/A";
+          lastEl.innerHTML = `${escapeHtml(obj.url || "Unknown")} — <span class="score-pill">${pctText}</span><div class="muted-small" style="margin-top:6px;">${escapeHtml(obj.ts || "")}</div>`;
+        } catch (e) {
+          lastEl.innerText = "No detection yet.";
+        }
+      } else {
+        lastEl.innerText = "No detection yet.";
+      }
+    });
+  }
+
+  // Reports UI
   function setReportsLoading() {
     reportsEl.textContent = "Loading...";
   }
@@ -71,7 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const d = document.createElement("div");
       d.className = "report";
 
-      const score = r.score != null ? (Math.round(r.score * 100)) : "N/A";
+      const score = r.score != null ? Math.round((1 - r.score) * 100) : "N/A"; // safety %
       const ts = r.ts ? escapeHtml(r.ts) : "";
       const id = escapeHtml(r.id || "");
       const url = escapeHtml(r.url || "");
@@ -81,10 +100,10 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="meta">
           <div style="flex:1">
             <div style="font-size:13px;"><b>${url}</b></div>
-            <div class="muted" style="margin-top:4px;">${ts} • id: ${id}</div>
+            <div class="muted-small" style="margin-top:4px;">${ts} • id: ${id}</div>
           </div>
           <div style="margin-left:8px; text-align:right;">
-            <div class="score-pill ${scoreClass(r.score || 0)}">${score}%</div>
+            <div class="score-pill">${score}%</div>
             <div style="margin-top:6px;"><button class="toggle">Details</button></div>
           </div>
         </div>
@@ -128,61 +147,67 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  refreshBtn && refreshBtn.addEventListener("click", () => {
-    loadLast();
+  // Save thresholds
+  saveBtn.addEventListener("click", () => {
+    const block = Number(blockNum.value || DEFAULTS.block);
+    const warn = Number(warnNum.value || DEFAULTS.warn);
+    if (warn > block) {
+      if (!confirm(`Warning threshold (${warn}%) is higher than blocking (${block}%). This might be unintended. Continue?`)) return;
+    }
+    const obj = { block, warn };
+    chrome.storage.local.set({ phish_thresholds: obj }, () => {
+      alert("Saved thresholds");
+    });
+  });
+
+  resetBtn.addEventListener("click", () => {
+    setControlsFromObj(DEFAULTS);
+    chrome.storage.local.set({ phish_thresholds: { block: DEFAULTS.block, warn: DEFAULTS.warn } }, () => {
+      alert("Reset to defaults");
+    });
+  });
+
+  refreshBtn.addEventListener("click", () => {
+    loadSettingsAndLast();
     loadReports();
   });
 
-  clearBtn && clearBtn.addEventListener("click", () => {
+  // Send / Clear / Simulate
+  sendBtn.addEventListener("click", () => {
+    const url = apiInput.value.trim();
+    if (!url) return alert("Enter backend URL (eg. http://localhost:3000/report)");
+    sendBtn.disabled = true; sendBtn.textContent = "Uploading...";
+    chrome.runtime.sendMessage({ type: "UPLOAD_REPORTS", apiUrl: url }, (res) => {
+      sendBtn.disabled = false; sendBtn.textContent = "Send";
+      if (!res) return alert("No response from background");
+      if (!res.ok) return alert("Upload failed: " + (res.error || "unknown"));
+      alert(`Uploaded ${res.uploaded || 0} reports`);
+      loadReports();
+    });
+  });
+
+  clearBtn.addEventListener("click", () => {
     if (!confirm("Clear all locally stored reports?")) return;
     chrome.runtime.sendMessage({ type: "CLEAR_REPORTS" }, (res) => {
       loadReports();
     });
   });
 
-  sendBtn && sendBtn.addEventListener("click", () => {
-    const url = apiInput.value.trim();
-    if (!url) {
-      alert("Enter backend URL (eg. http://localhost:3000/report) to upload.");
-      return;
-    }
-    sendBtn.disabled = true;
-    sendBtn.textContent = "Uploading...";
-    chrome.runtime.sendMessage({ type: "UPLOAD_REPORTS", apiUrl: url }, (res) => {
-      sendBtn.disabled = false;
-      sendBtn.textContent = "Send";
-      if (!res) return alert("No response from background");
-      if (!res.ok) {
-        return alert("Upload failed: " + (res.error || "unknown"));
-      }
-      alert(`Uploaded ${res.uploaded || 0} reports`);
+  simulateBtn.addEventListener("click", () => {
+    simulateBtn.disabled = true; simulateBtn.textContent = "Simulating...";
+    chrome.runtime.sendMessage({
+      type: "REPORT_SUSPECT",
+      url: "https://simulated-test.local/",
+      score: 0.92,
+      extra: { reason: "manual popup test", simulated: true }
+    }, (res) => {
+      simulateBtn.disabled = false; simulateBtn.textContent = "Simulate";
+      alert("Simulated report added! Refreshing saved reports...");
       loadReports();
     });
   });
 
-  if (simulateBtn) {
-    simulateBtn.addEventListener("click", () => {
-      simulateBtn.disabled = true;
-      simulateBtn.textContent = "Simulating...";
-      chrome.runtime.sendMessage(
-        {
-          type: "REPORT_SUSPECT",
-          url: "https://simulated-test.local/",
-          score: 0.92,
-          extra: { reason: "manual popup test", simulated: true }
-        },
-        (res) => {
-          simulateBtn.disabled = false;
-          simulateBtn.textContent = "Simulate report";
-          console.log("Simulated REPORT_SUSPECT response:", res);
-          alert("Simulated report added! Refreshing saved reports...");
-          loadReports();
-        }
-      );
-    });
-  }
-
   // initial load
-  loadLast();
+  loadSettingsAndLast();
   loadReports();
 });

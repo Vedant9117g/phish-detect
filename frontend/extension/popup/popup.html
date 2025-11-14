@@ -4,46 +4,74 @@
     <meta charset="utf-8" />
     <title>PhishDetect</title>
     <style>
-      body { font-family: system-ui, "Segoe UI", Roboto, Arial; width: 360px; padding: 12px; box-sizing: border-box; background: #f7f7f8; color:#111;}
-      h3 { margin: 0 0 8px 0; font-size:18px; }
-      .container { display:flex; flex-direction:column; gap:10px; }
-      .card { background:#fff; border:1px solid #e3e3e6; padding:8px; border-radius:8px; box-shadow: 0 1px 0 rgba(0,0,0,0.02); }
-      .row { display:flex; gap:8px; }
-      input[type="text"], input#apiUrl { flex:1; padding:6px 8px; border-radius:6px; border:1px solid #ddd; font-size:13px; }
-      button { padding:6px 8px; border-radius:6px; border:1px solid #cfcfcf; background:#fff; cursor:pointer; font-size:13px; }
-      .small { font-size:12px; color:#555; }
-      .reports { max-height:220px; overflow:auto; display:flex; flex-direction:column; gap:8px; }
+      body { font-family: system-ui, "Segoe UI", Roboto, Arial; width: 420px; padding:12px; box-sizing:border-box; background:#f7f7f8; color:#111; }
+      h3 { margin:0 0 8px 0; font-size:18px; }
+      .card { background:#fff; border:1px solid #e8e8ea; padding:10px; border-radius:8px; }
+      .row { display:flex; gap:8px; align-items:center; margin-top:8px; }
+      input[type="range"]{ width:100%; }
+      input[type="number"]{ width:70px; padding:6px; border-radius:6px; border:1px solid #ddd; }
+      button { padding:6px 10px; border-radius:6px; border:1px solid #cfcfcf; background:#fff; cursor:pointer; }
+      .muted { color:#666; font-size:12px; }
+      .small { font-size:12px; }
+      .controls { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+      label { font-size:13px; display:block; margin-bottom:4px; }
+      .score-pill { font-weight:700; padding:4px 6px; border-radius:6px; background:#111; color:#fff; font-size:12px; display:inline-block; }
+      .section-title { margin-top:12px; margin-bottom:6px; font-size:14px; }
+      .reports { max-height:240px; overflow:auto; display:flex; flex-direction:column; gap:8px; margin-top:6px; }
       .report { background:#fff; border:1px solid #ececec; padding:8px; border-radius:6px; }
       .report .meta { display:flex; justify-content:space-between; align-items:center; gap:8px; }
       .report .details { margin-top:6px; font-size:12px; color:#333; display:none; white-space:pre-wrap; background:#f9f9fb; padding:8px; border-radius:6px; border:1px solid #f0f0f2; }
       .toggle { cursor:pointer; color:#0b66ff; text-decoration:underline; font-size:12px; background:none; border:none; padding:0; }
-      .score-pill { font-weight:700; padding:4px 6px; border-radius:6px; background:#111; color:#fff; font-size:12px; }
-      .score-low { background: #198754; } /* green */
-      .score-mid { background: #ff8c00; } /* orange */
-      .score-high { background: #dc3545; } /* red */
-      .muted { color:#666; font-size:12px; }
+      .muted-small { font-size:12px; color:#666; }
+      .controls-footer { display:flex; gap:8px; justify-content:space-between; margin-top:8px; }
+      .flex { display:flex; gap:8px; align-items:center; }
     </style>
   </head>
   <body>
-    <div class="container">
+    <div class="card">
       <h3>PhishDetect</h3>
 
-      <div id="last" class="card small">No detection yet1.</div>
+      <div id="last" class="small muted" style="margin-bottom:8px;">No detection yet.</div>
 
-      <div class="row">
-        <input id="apiUrl" placeholder="Backend URL (optional)" type="text"/>
-        <button id="send">Send</button>
+      <div class="controls">
+        <div>
+          <label for="blockRange">Blocking threshold (overlay when phishing ≥ threshold)</label>
+          <div class="row">
+            <input id="blockRange" type="range" min="0" max="100" step="1" />
+            <input id="blockNum" type="number" min="0" max="100" step="1" />
+          </div>
+        </div>
+
+        <div>
+          <label for="warnRange">Warnings threshold (report & mark suspicious when phishing ≥ threshold)</label>
+          <div class="row">
+            <input id="warnRange" type="range" min="0" max="100" step="1" />
+            <input id="warnNum" type="number" min="0" max="100" step="1" />
+          </div>
+        </div>
+
+        <div class="row" style="justify-content:space-between; margin-top:6px;">
+          <div style="display:flex; gap:8px;">
+            <button id="save">Save</button>
+            <button id="reset">Reset defaults</button>
+            <button id="refresh">Refresh</button>
+          </div>
+          <div class="muted-small">Tip: Warning ≤ Blocking recommended</div>
+        </div>
+
+        <div style="margin-top:8px;">
+          <input id="apiUrl" placeholder="Backend URL (optional: http://localhost:3000/report)" style="width:100%; padding:6px; border-radius:6px; border:1px solid #ddd;" />
+          <div style="display:flex; gap:8px; margin-top:6px;">
+            <button id="send">Send reports</button>
+            <button id="clear">Clear stored</button>
+            <button id="simulate">Simulate</button>
+          </div>
+        </div>
       </div>
-
-      <div style="display:flex; gap:8px;">
-        <button id="refresh">Refresh</button>
-        <button id="clear">Clear stored</button>
-        <button id="simulate">Simulate report11</button>
-      </div>
-
-      <h4 style="margin:6px 0 0 0;">Saved reports</h4>
-      <div id="reports" class="reports card">Loading...</div>
     </div>
+
+    <div class="section-title">Saved reports</div>
+    <div id="reports" class="reports card">Loading...</div>
 
     <script src="popup.js"></script>
   </body>
